@@ -57,23 +57,25 @@ def drawSquare():
     rect(208, 435, 50, 50)
 
 class intersection:
-    def __init__(self, xCoord, yCoord):
+    def __init__(self, xCoord, yCoord, id):
         intersections.append(self)
         self.xCoord = xCoord
         self.yCoord = yCoord
         
+        self.id = id
+        
         self.time = 0
         
-        #allows cars from (no direction: -1, left: 1, up: 2, right: 3, down: 4) to procede
+        #allows cars from (no direction: -1, left: 1, up: 2, right: 3, down: 0) to procede
         self.allowance = -1
         #selects the next open road
-        self.next = 1
+        self.next = 0
 
     def changeLane(self):
         self.time = 0
         
         self.allowance = self.next
-        self.next = self.next + 1 if self.next < 4 else 1
+        self.next = self.next + 1 if self.next < 3 else 0
         
     def checkLane(self):
         return self.allowance
@@ -81,7 +83,7 @@ class intersection:
     def drawIntersection(self):
         self.time += 1
         
-        if self.allowance == -1 and self.time > 30:
+        if self.allowance == -1 and self.time > 15:
             self.changeLane()
         elif self.time > 90:
             self.allowance = -1
@@ -97,6 +99,8 @@ class Car:
 
         self.positionX = 0
         self.positionY = 0
+        
+        self.immunity = 0
         
         self.red = random.randrange(255)
         self.green = random.randrange(255)
@@ -131,16 +135,23 @@ class Car:
     def collisionAvoidance(self, posX, posY):
         
         for intersection in intersections:
-            if abs(intersection.xCoord - posX) < 5 and abs(intersection.yCoord - posY) < 5:
+            if (abs(intersection.xCoord - posX) < 5 and abs(intersection.yCoord - posY) < 5) and self.immunity != intersection.id:
                 if (self.direction != intersection.checkLane()):
                     self.speed = acceleration
                     return False
+                else:
+                    print("Immunity given")
+                    self.immunity = intersection.id
+                
+                
                 
         
         for car in cars:
             if car != self and abs(car.positionX - posX) < 3 and abs(car.positionY - posY) < 3:
                 self.speed = acceleration
                 return False
+            
+            
         if self.speed < topSpeed:
             self.speed += acceleration
             self.speed = self.speed if self.speed < topSpeed else topSpeed   
@@ -149,6 +160,7 @@ class Car:
         return True
 
     def move(self):
+        
         
         if self.direction == 0:
             if self.collisionAvoidance(self.positionX, self.positionY + self.speed):
@@ -185,10 +197,10 @@ cars = []
 acceleration = .1
 topSpeed = 1
 
-intersection(33,33)
-intersection(33,66)
-intersection(66,33)
-intersection(66,66)
+intersection(33,33,1)
+intersection(33,66,2)
+intersection(66,33,3)
+intersection(66,66,4)
 
 def draw():
     
@@ -199,7 +211,7 @@ def draw():
     drawDashedLinesLeft()
     drawDashedLinesRight()
     drawSquare()
-    carsAmount = 40
+    carsAmount = 120
     
     
 
