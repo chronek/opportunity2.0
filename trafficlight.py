@@ -3,21 +3,19 @@ import threading
 import time
 
 connections = []
+clients = []
 
 class Connection:
    """initialize connection information"""
    def __init__(self, conn, addr):
+      """Set connection and address information"""
       self.conn = conn
       self.addr = addr
-      self.light_id = 0
       self.client = None
-   
-   def set_name(self, lid):
-      """Set the id of the connection"""
-      self.light_id = int(lid)
+
 
    def add_client(client):
-      """Add the client side of the connection to the object"""
+      """Add the client side of socket"""
       self.client = client
 
 
@@ -25,7 +23,6 @@ class TrafficLight:
    """Traffic light object"""
    def __init__(self, num, port, nodes=1):
       self.nodes = nodes
-      self.connections = []
       self.lid = num
       self.port = port
 
@@ -33,30 +30,20 @@ class TrafficLight:
       """Look for connections to other lights nearby"""
       my_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       my_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-      my_sock.bind((socket.gethostname(), self.port))
+      my_sock.bind(("127.0.0.1", self.port))
       my_sock.listen(3)
 
-      while(True):
+      while(self.nodes != 0):
          conn, addr = my_sock.accept()
          connections.append(Connection(conn, addr))
-         print("Accepted")
+         self.nodes -= 1
+
 
    def send_to_peer(self, port):
       """Initiate connections to nearby lights"""
       other_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      other_sock.connect((socket.gethostname(), port))
-      #print("Connected")
-      return other_sock
-
-   def get_data(self):
-      """Get information from peers"""
-      for x in range(len(self.connections)):
-         self.connections[x].set_name(self.connections[x].conn.recv(1024).decode())
-
-   def send_data(self):
-      """Send data to peers"""
-      for x in self.connections:
-         x.send((str(self.lid) + '').encode())
+      other_sock.connect(("127.0.0.1", port))
+      clients.append(other_sock)
 
 
 # Initialize lights
@@ -65,37 +52,22 @@ trlight = TrafficLight(2, 5001)
 bllight = TrafficLight(3, 5002)
 brlight = TrafficLight(4, 5003)
 
-threading.Thread(target=tllight.connect_to_peer).start()
-time.sleep(1)
-client = trlight.send_to_peer(5000)
-connections[0].add_client(client)
+threads = []
+threads.append(threading.Thread(target=tllight.connect_to_peer))
+threads.append(threading.Thread(target=trlight.connect_to_peer))
+threads.append(threading.Thread(target=brlight.connect_to_peer))
+threads.append(threading.Thread(target=bllight.connect_to_peer))
 
-print(len(connections))
+for t in threads:
+   t.start()
 
-threading.Thread(target=trlight.connect_to_peer).start()
-time.sleep(1)
-client = brlight.send_to_peer(5001)
-connections[1].add_client(client)
+time.sleep(3)
 
-print(len(connections))
+trlight.send_to_peer(5000)
+brlight.send_to_peer(5001)
+bllight.send_to_peer(5002)
+tllight.send_to_peer(5003)
 
-threading.Thread(target=brlight.connect_to_peer).start()
-time.sleep(1)
-client = bllight.send_to_peer(5002)
-connections[3].add_client(client)
+for t in threads:
+   t.join()
 
-print(len(connections))
-
-threading.Thread(target=bllight.connect_to_peer).start()
-time.sleep(1)
-client = tllight.send_to_peer(5003)
-connections[4].add_client(client)
-
-print(len(connections))
-
-#main = threading.Thread(target=top_left_light.get_data)
-#main.start()
-
-#for x in near:
-#   x.send_data()
-#main.join()
