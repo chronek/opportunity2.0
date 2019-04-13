@@ -43,6 +43,21 @@ class TrafficLight:
       other_sock.connect(("127.0.0.1", port))
       clients.append(other_sock)
 
+   @staticmethod # Takes which path(socket) it should listen on
+   def recv_from_light(recving, sending):
+      """Receive data from a traffic light"""
+      data = recving.conn.recv(1024)
+      print(data.decode())
+
+   def send_between_lights(self, path, data):
+      """Handle sending data from the traffic light"""
+      t = threading.Thread(target=TrafficLight.recv_from_light, args=path)
+      t.start()  # Dispatch thread to block for data
+
+      # Send data to the target light and wait for it to come back
+      path[1].send((str(data) + '').encode())
+      t.join()
+
 
 # Initialize lights
 tllight = TrafficLight(1, 5000)
@@ -74,11 +89,14 @@ tllight.send_to_peer(5003)
 for t in threads:
    t.join()
 
-# Put servers and clients together
-paths = []
+# Put paths together
+# Dict to cleanly store the socket pairs
+# Keys are the original server ports they connected to
+paths = {} 
 for x in range(len(connections)):
    for y in range(len(clients)):
       if connections[x].addr[1] == clients[y].getsockname()[1]:
-         paths.append((clients[y].getpeername()[1], connections[x], clients[y]))
+         paths[clients[y].getpeername()[1]] = (connections[x], clients[y])
 
-print(paths[0])
+# Send some data between a pair of lights
+tllight.send_between_lights(paths[5001], 100)
