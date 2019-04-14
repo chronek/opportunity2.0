@@ -86,9 +86,9 @@ class intersection:
     def drawIntersection(self):
         self.time += 1
         
-        if self.allowance == -1 and self.time > 15:
+        if self.allowance == -1 and self.time > 60:
             self.changeLane()
-        elif self.time > 90:
+        elif self.time > 120:
             self.allowance = -1
             self.time = 0
     class TrafficLight:
@@ -140,8 +140,12 @@ class Car:
 
         self.positionX = 0
         self.positionY = 0
+    
+        self.stun = 0
         
         self.immunity = 0
+        
+        self.nextDirection = -1
         
         self.red = random.randrange(255)
         self.green = random.randrange(255)
@@ -179,17 +183,44 @@ class Car:
             if (abs(intersection.xCoord - posX) < 5 and abs(intersection.yCoord - posY) < 5) and self.immunity != intersection.id:
                 if (self.direction != intersection.checkLane()):
                     self.speed = acceleration
+                    self.stun = 4
                     return False
                 else:
-                    print("Immunity given")
+                    #1 means keep going, 2 means turn left, 3 means turn right
+                    self.nextDirection = random.randrange(1, 4)
+                    
+                    if self.nextDirection == 1:
+                        self.nextDirection = -1
+                    elif self.nextDirection == 2: #turn right
+                        if self.direction == 0:
+                            self.nextDirection = 2
+                        elif self.direction == 1:
+                            self.nextDirection = 3
+                        elif self.direction == 2:
+                            self.nextDirection = 0
+                        elif self.direction == 3:
+                            self.nextDirection = 1
+                    elif self.nextDirection == 3: #turn left
+                        if self.direction == 0:
+                            self.nextDirection = 3
+                        elif self.direction == 1:
+                            self.nextDirection = 2
+                        elif self.direction == 2:
+                            self.nextDirection = 1
+                        elif self.direction == 3:
+                            self.nextDirection = 0
+                        
+                        
+                    
                     self.immunity = intersection.id
                 
                 
                 
         
         for car in cars:
-            if car != self and abs(car.positionX - posX) < 3 and abs(car.positionY - posY) < 3:
+            if car != self and abs(car.positionX - posX) < 3 and abs(car.positionY - posY) < 3 and car.direction == self.direction:
                 self.speed = acceleration
+                self.stun = 4
                 return False
             
             
@@ -197,8 +228,19 @@ class Car:
             self.speed += acceleration
             self.speed = self.speed if self.speed < topSpeed else topSpeed   
         
-         
+        if self.stun == 0:
+            return True
+        else:
+            self.stun -= 1
+            return False
+
+    def proximity(self, num):
+        for car in cars:
+            if car != self and abs(car.positionX - self.positionX) < num and abs(car.positionY - self.positionY) < num:
+                return False
+            
         return True
+    
 
     def move(self):
         
@@ -215,6 +257,40 @@ class Car:
         elif self.direction == 3:
             if self.collisionAvoidance(self.positionX - self.speed, self.positionY):
                 self.positionX -= self.speed
+        
+        if self.nextDirection != -1:
+            if self.nextDirection == 0:
+                if abs(self.positionX - 67.5) < 1 or abs(self.positionX - 34.5) < 1:
+                    if self.proximity(3):
+                        self.positionX = 67.5 if abs(self.positionX - 67.5) < 1 else 34.5
+                    
+                        self.direction = self.nextDirection
+                    self.nextDirection = -1
+            elif self.nextDirection == 1:
+                if abs(self.positionX - 64.5) < 1 or abs(self.positionX - 31.5) < 1:
+                    if self.proximity(3):
+                        self.positionX = 64.5 if abs(self.positionX - 64.5) < 1 else 31.5
+                    
+                        self.direction = self.nextDirection
+                    self.nextDirection = -1
+                self.nextDirection = 2
+            elif self.nextDirection == 2:
+                if abs(self.positionY - 67.5) < 1 or abs(self.positionY - 34.5) < 1:
+                    if self.proximity(3):
+                        self.positionY = 67.5 if abs(self.positionY - 67.5) < 1 else 34.5
+                    
+                        self.direction = self.nextDirection
+                    self.nextDirection = -1
+            elif self.nextDirection == 3:
+                if abs(self.positionY - 64.5) < 1 or abs(self.positionY - 31.5) < 1:
+                    if self.proximity(3):
+                        self.positionY = 64.5 if abs(self.positionY - 64.5) < 1 else 31.5
+                    
+                        self.direction = self.nextDirection
+                    self.nextDirection = -1
+        
+        
+        
 
         if self.positionY > 100 or self.positionY < 0  or self.positionX > 100 or self.positionX < 0 :
             cars.remove(self)
@@ -252,7 +328,7 @@ def draw():
     drawDashedLinesLeft()
     drawDashedLinesRight()
     drawSquare()
-    carsAmount = 120
+    carsAmount = 800
     
     
 
