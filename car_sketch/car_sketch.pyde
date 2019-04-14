@@ -63,6 +63,9 @@ class intersection:
         self.xCoord = xCoord
         self.yCoord = yCoord
         
+        #waiting coming from Right, UP, Left, Down
+        self.waiting = [0,0,0,0]
+        
         self.id = id
         
         self.time = 0
@@ -72,20 +75,41 @@ class intersection:
         # selects the next open road
         self.next = 0
 
-    def changeLane(self):
+    def changeLane(self, direction):
         self.time = 0
         
-        self.allowance = self.next
-        self.next = self.next + 1 if self.next < 3 else 0
+        self.allowance = direction
+        
+        
+        
+    def getWaitingCars(self):
+        for car in cars:
+            if car.speed == acceleration and abs(car.positionX - self.xCoord) < 3:
+                self.waiting[0] += 1
+                
+    
+    
         
     def checkLane(self):
         return self.allowance
     
-    def drawIntersection(self):
+    def drawIntersection(self, time):
         self.time += 1
         
-        if self.allowance == -1 and self.time > 60:
-            self.changeLane()
+        if self.allowance == -1 and self.time > 30:
+            self.changeLane(self.next)
+            self.next = self.next + 1 if self.next < 3 else 0
+        elif self.time > time:
+            self.allowance = -1
+            self.time = 0
+    
+    
+    def drawIntersectionDefault(self):
+        self.time += 1
+        
+        if self.allowance == -1 and self.time > 30:
+            self.changeLane(self.next)
+            self.next = self.next + 1 if self.next < 3 else 0
         elif self.time > 120:
             self.allowance = -1
             self.time = 0
@@ -278,6 +302,7 @@ intersection(33,66,2)
 intersection(66,33,3)
 intersection(66,66,4)
 
+
 def draw():
     
     background(11, 102, 35)
@@ -287,7 +312,7 @@ def draw():
     drawDashedLinesLeft()
     drawDashedLinesRight()
     drawSquare()
-    carsAmount = 800
+    carsAmount = 40
     
     
 
@@ -295,13 +320,34 @@ def draw():
         Car()
 
     for intersection in intersections:
-        print("Intersection allowance: " + str(intersection.allowance))
-        intersection.drawIntersection()
+        #print("Intersection allowance: " + str(intersection.allowance))
+        intersection.drawIntersectionDefault()
 
     for car in cars:
         # print(" car position is: " + str(car.positionX) + ", " + str(car.positionY))
         car.drawCar()
         car.move()
     # time.sleep(4)
+    
+    numZeroSpeed = 0
+    for car in cars:
+        if car.speed == acceleration:
+            numZeroSpeed += 1
 
+
+    print("number cars waiting per second: " + str(numZeroSpeed))
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
         # print("car direction: " + str(car.direction) + " car position is: " + str(car.positionX) + ", " + str(car.positionY))
