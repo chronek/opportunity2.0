@@ -63,7 +63,7 @@ class intersection:
         self.xCoord = xCoord
         self.yCoord = yCoord
         
-        #waiting coming from Right, UP, Left, Down
+        #waiting coming from Left, UP, Left, Down
         self.waiting = [0,0,0,0]
         
         self.id = id
@@ -83,12 +83,22 @@ class intersection:
         
         
     def getWaitingCars(self):
-        for car in cars:
-            if car.speed == acceleration and abs(car.positionX - self.xCoord) < 3:
-                self.waiting[0] += 1
-                
+        #self.waiting[0] = 0
+        #self.waiting[1] = 0
+        #self.waiting[2] = 0
+        #self.waiting[3] = 0
+        
+        #for car in cars:
+         #   if car.speed == acceleration and abs(car.positionX - self.xCoord) < 3 and abs(car.positionY - self.yCoord) < 3 and car.direction == 3:
+          #      self.waiting[0] += 1
+           # elif car.speed == acceleration and abs(car.positionX - self.xCoord) < 3 and abs(car.positionY - self.yCoord) < 3 and car.direction == 0:
+    #            self.waiting[1] += 1
+     #       elif car.speed == acceleration and abs(car.positionX - self.xCoord) < 3 and abs(car.positionY - self.yCoord) < 3 and car.direction == 2:
+      #          self.waiting[2] += 1
+       #     elif car.speed == acceleration and abs(car.positionX - self.xCoord) < 3 and abs(car.positionY - self.yCoord) < 3 and car.direction == 1:
+        #        self.waiting[3] += 1
     
-    
+        print(' '.join(map(str, self.waiting)))  
         
     def checkLane(self):
         return self.allowance
@@ -120,6 +130,9 @@ class Car:
     def __init__(self):
         # up: 0,down: 1,right: 2,left: 3
         self.direction = random.randrange(4)
+
+        self.waitingIntersectionId = 0
+        self.waitingDirection = -1
 
         self.positionX = 0
         self.positionY = 0
@@ -160,6 +173,28 @@ class Car:
         
         return True
         
+        
+    
+    def addSelfToWaitList(self, id):
+        if self.direction == 3:
+            self.waitingDirection = 0
+        elif self.direction == 0:
+            self.waitingDirection = 1
+        elif self.direction == 2:
+            self.waitingDirection = 2
+        elif self.direction == 1:
+            self.waitingDirection = 3
+        
+        if id > 0:
+            intersections[id - 1].waiting[self.waitingDirection] += 1
+            
+    def removeSelfFromWaitList(self):
+        if self.waitingIntersectionId > 0:
+            intersections[self.waitingIntersectionId - 1].waiting[self.waitingDirection] -= 1
+        
+        self.waitingDirection = -1
+        self.waitingIntersectionId = 0
+    
     def collisionAvoidance(self, posX, posY):
         
         for intersection in intersections:
@@ -167,6 +202,11 @@ class Car:
                 if (self.direction != intersection.checkLane()):
                     self.speed = acceleration
                     self.stun = 4
+                    
+                    if self.waitingIntersectionId == 0:
+                        self.waitingIntersectionId = intersection.id
+                        self.addSelfToWaitList(intersection.id)
+                        
                     return False
                 else:
                     #1 means keep going, 2 means turn left, 3 means turn right
@@ -204,6 +244,10 @@ class Car:
             if car != self and abs(car.positionX - posX) < 3 and abs(car.positionY - posY) < 3 and car.direction == self.direction:
                 self.speed = acceleration
                 self.stun = 4
+                
+                if self.waitingIntersectionId == 0 and car.waitingIntersectionId != 0:
+                    self.waitingIntersectionId = car.waitingIntersectionId
+                    self.addSelfToWaitList(self.waitingIntersectionId)
                 return False
             
             
@@ -212,6 +256,10 @@ class Car:
             self.speed = self.speed if self.speed < topSpeed else topSpeed   
         
         if self.stun == 0:
+            
+            if self.waitingIntersectionId != 0:
+                self.removeSelfFromWaitList()
+            
             return True
         else:
             self.stun -= 1
@@ -334,6 +382,8 @@ def draw():
         if car.speed == acceleration:
             numZeroSpeed += 1
 
+
+    intersections[0].getWaitingCars()
 
     print("number cars waiting per second: " + str(numZeroSpeed))
     
